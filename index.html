@@ -175,6 +175,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .spec-lbl{font-size:.62rem;letter-spacing:.15em;text-transform:uppercase;color:var(--gold)}
 .spec-val{font-family:"Cormorant Garamond",serif;font-size:1rem;color:var(--walnut)}
 .modal-enq{width:100%;padding:.9rem;background:var(--walnut);color:var(--parchment);border:none;cursor:pointer;font-family:"Jost",sans-serif;font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;transition:background .3s}
+.modal-enq.sold-out{background:var(--stone);cursor:default}
+.scarcity-note{font-size:.7rem;letter-spacing:.05em;color:var(--stone);text-align:center;margin-bottom:.6rem;font-style:italic}
 .modal-enq:hover{background:var(--gold)}
 .framing-choice{margin-bottom:1.4rem}
 .frame-opt{display:block;font-size:.85rem;color:var(--walnut);font-weight:500;margin-bottom:.5rem;cursor:pointer}
@@ -692,7 +694,8 @@ body.edit-mode [data-editable]:focus{outline:2px solid var(--gold);background:rg
         <label class="frame-opt"><input type="radio" name="framing" value="Framed" checked> Framed <span style="color:var(--stone);font-weight:400">— ready to hang</span></label>
         <label class="frame-opt"><input type="radio" name="framing" value="Unframed"> Unframed <span style="color:var(--stone);font-weight:400">— canvas/paper only, for your own framing</span></label>
       </div>
-      <button class="modal-enq" onclick="sendEnquiry()">Enquire About This Work →</button>
+      <p class="scarcity-note" id="scarcityNote">Only original. Once sold, gone.</p>
+      <button class="modal-enq" onclick="sendEnquiry()" id="reserveBtn">Reserve This Piece →</button>
     </div>
   </div>
   <button class="modal-close" onclick="closeModal()">✕</button>
@@ -1019,7 +1022,7 @@ function buildGallery(f){
         <div class="art-card-sub">${w.sub}</div>
         <div class="art-card-footer">
           <div class="art-card-med">${w.medium}</div>
-          <button class="enq-btn" onclick="event.stopPropagation();openById('${w.id}')">Enquire →</button>
+          <button class="enq-btn" onclick="event.stopPropagation();openById('${w.id}')">View →</button>
         </div>
       </div>`;
     d.addEventListener('click',()=>openById(w.id));
@@ -1051,6 +1054,19 @@ function openById(id){
   const sv=document.getElementById('ms4');
   sv.textContent=w.status==='sold'?'Sold':w.tag==='ltd'?'Limited — Available':'Available';
   sv.style.color=w.status==='sold'?'var(--stone)':'var(--gold)';
+  const btn=document.getElementById('reserveBtn');
+  const note=document.getElementById('scarcityNote');
+  if(w.status==='sold'){
+    btn.textContent='This Piece Has Sold';
+    btn.classList.add('sold-out');
+    btn.onclick=function(){ askAboutSimilar(w.title); };
+    note.style.display='none';
+  } else {
+    btn.textContent='Reserve This Piece →';
+    btn.classList.remove('sold-out');
+    btn.onclick=sendEnquiry;
+    note.style.display='block';
+  }
   document.getElementById('modalOverlay').classList.add('open');
   document.body.style.overflow='hidden';
   const fr=document.querySelector('input[name="framing"][value="Framed"]');
@@ -1062,7 +1078,11 @@ function sendEnquiry(){
   const dims=document.getElementById('ms2').textContent;
   const opt=document.querySelector('input[name="framing"]:checked');
   const framing=opt?opt.value:'Framed';
-  const msg=`Hi, I'd like to enquire about "${title}" (${med}, ${dims}) — ${framing}.`;
+  const msg=`Hi, I'd like to reserve "${title}" (${med}, ${dims}) — ${framing}. Please confirm availability.`;
+  window.open('https://wa.me/919929563297?text='+encodeURIComponent(msg),'_blank');
+}
+function askAboutSimilar(title){
+  const msg=`Hi, "${title}" has sold — could you show me similar available pieces?`;
   window.open('https://wa.me/919929563297?text='+encodeURIComponent(msg),'_blank');
 }
 function closeModal(){
@@ -1255,8 +1275,14 @@ document.getElementById('nlForm').addEventListener('submit', function(e){
 });
 window.addEventListener('load', function(){
   renderCart();
-  if(shouldShowNewsletter()){
-    setTimeout(()=>document.getElementById('nlOverlay').classList.add('open'), 1800);
+});
+let nlShown=false;
+window.addEventListener('scroll', function(){
+  if(nlShown || !shouldShowNewsletter()) return;
+  const scrollPct=(window.scrollY)/(document.documentElement.scrollHeight-window.innerHeight);
+  if(scrollPct > 0.4){
+    nlShown=true;
+    document.getElementById('nlOverlay').classList.add('open');
   }
 });
 
